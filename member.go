@@ -3,19 +3,116 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/google/go-github/v27/github"
 	"github.com/spf13/cobra"
 )
 
-var githubMembersOpts *github.ListMembersOptions
+var GitHubRoles = []string{
+	"admin",
+	"direct_member",
+	"billing_manager",
+}
 
 var cmdMember = &cobra.Command{
 	Use:   "member",
 	Short: "manage member",
 }
 
-var cmdAddMember = &cobra.Command{}
+var cmdAddMember = &cobra.Command{
+	Use:   "add",
+	Short: "create invitation for add member",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name, err := cmd.Flags().GetString("name")
+		if err != nil {
+			return err
+		}
+
+		email, err := cmd.Flags().GetString("email")
+		if err != nil {
+			return err
+		}
+
+		if (name == "" && email == "") || (name != "" && email != "") {
+			return errors.New("set either email or name")
+		}
+
+		role, err := cmd.Flags().GetString("role")
+		if err != nil {
+			return err
+		}
+
+		if !func(r string) bool {
+			for _, v := range GitHubRoles {
+				if r == v {
+					return true
+				}
+			}
+			return false
+		}(role) {
+			return errors.New("require ['admin', 'direct_member', 'billing_manager']")
+		}
+
+		teams, err := cmd.Flags().GetStringSlice("team")
+		if err != nil {
+			return err
+		}
+
+		listOptions := &github.ListOptions{}
+
+		var orgTeams []*github.Team
+		for {
+			t, resp, err := GitHubClient.Teams.ListTeams(ctx, GitHubOrg, listOptions)
+			if err != nil {
+				return err
+			}
+
+			orgTeams = append(orgTeams, t...)
+
+			if resp.NextPage == 0 {
+				break
+			}
+
+			listOptions.Page = resp.NextPage
+		}
+
+		var teamIDs []int64
+		for _, t := range orgTeams {
+			for _, tn := range teams {
+				if *t.Name == tn {
+					teamIDs = append(teamIDs, *t.ID)
+				}
+			}
+		}
+
+		invitationOpts := &github.CreateOrgInvitationOptions{
+			Role:   &role,
+			TeamID: teamIDs,
+		}
+
+		if name != "" {
+			user, _, err := GitHubClient.Users.Get(ctx, name)
+			if err != nil {
+				return err
+			}
+
+			invitationOpts.InviteeID = user.ID
+		} else if email != "" {
+			invitationOpts.Email = &email
+		}
+
+		invitation, _, err := GitHubClient.Organizations.CreateOrgInvitation(ctx, GitHubOrg, invitationOpts)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Login: %s, ID: %d, Email: %s, Role: %s\n", *invitation.Login, *invitation.ID, *invitation.Email, *invitation.Role)
+
+		return nil
+	},
+}
 
 var cmdDeleteMember = &cobra.Command{
 	Use:   "delete",
@@ -31,18 +128,23 @@ var cmdDeleteMember = &cobra.Command{
 		case "name":
 			for _, user := range args {
 				if _, err := GitHubClient.Organizations.RemoveMember(ctx, user, GitHubOrg); err != nil {
-					return nil
+					return err
 				}
 			}
 		case "id":
-			for _, id := range args {
-				user, err := GitHubClient.Users.GetByID(ctx, id)
+			for _, arg := range args {
+				id, err := strconv.ParseInt(arg, 10, 64)
 				if err != nil {
-					return nil
+					return err
+				}
+
+				user, _, err := GitHubClient.Users.GetByID(ctx, id)
+				if err != nil {
+					return err
 				}
 
 				if _, err = GitHubClient.Organizations.RemoveMember(ctx, *user.Login, GitHubOrg); err != nil {
-					return nil
+					return err
 				}
 			}
 		default:
@@ -56,10 +158,13 @@ var cmdDeleteMember = &cobra.Command{
 var cmdListMember = &cobra.Command{
 	Use:   "list",
 	Short: "get member list",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		membersOpts := &github.ListMembersOptions{}
+
 		var members []*github.User
 		for {
-			users, resp, err := GitHubClient.Organizations.ListMembers(ctx, GitHubOrg, githubMembersOpts)
+			users, resp, err := GitHubClient.Organizations.ListMembers(ctx, GitHubOrg, membersOpts)
 			if err != nil {
 				return err
 			}
@@ -70,7 +175,7 @@ var cmdListMember = &cobra.Command{
 				break
 			}
 
-			githubMembersOpts.Page = resp.NextPage
+			membersOpts.Page = resp.NextPage
 		}
 
 		for _, m := range members {
@@ -85,13 +190,13 @@ func init() {
 	rootCmd.AddCommand(cmdMember)
 
 	cmdMember.AddCommand(cmdAddMember)
+	cmdAddMember.Flags().StringP("name", "n", "", "Required unless you provide email. GitHub user name for the person you are inviting.")
+	cmdAddMember.Flags().String("email", "", "Required unless you provide name. Email address of the person you are inviting, which can be an existing GitHub user.")
+	cmdAddMember.Flags().StringP("role", "r", "direct_member", "Specify role for new member ['admin', 'direct_member', 'billing_manager']")
+	cmdAddMember.Flags().StringArrayP("team", "t", []string{}, "Specify names for the teams you want to invite new members to.")
 
 	cmdMember.AddCommand(cmdDeleteMember)
-	cmdDeleteMember.Flags().StringP("mode", "m", "name", "delete by ['name' , 'id]")
+	cmdDeleteMember.Flags().StringP("mode", "m", "name", "delete by ['name' , 'id']")
 
 	cmdMember.AddCommand(cmdListMember)
-
-	githubMembersOpts = &github.ListMembersOptions{
-		ListOptions: github.ListOptions{PerPage: 30},
-	}
 }

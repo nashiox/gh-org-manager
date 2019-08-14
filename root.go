@@ -13,7 +13,6 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "ghom",
 	Short: "ghom is GitHub Organization management cli.",
-	Long:  "ghom is GitHub Organization management cli.",
 }
 
 var GitHubOrg string
