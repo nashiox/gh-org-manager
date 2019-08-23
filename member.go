@@ -62,7 +62,7 @@ var cmdAddMember = &cobra.Command{
 
 		listOptions := &github.ListOptions{}
 
-		var orgTeams []*github.Team
+		orgTeams := make([]*github.Team, 0)
 		for {
 			t, resp, err := GitHubClient.Teams.ListTeams(ctx, GitHubOrg, listOptions)
 			if err != nil {
@@ -78,7 +78,7 @@ var cmdAddMember = &cobra.Command{
 			listOptions.Page = resp.NextPage
 		}
 
-		var teamIDs []int64
+		teamIDs := make([]int64, 0)
 		for _, t := range orgTeams {
 			for _, tn := range teams {
 				if *t.Name == tn {
@@ -162,7 +162,7 @@ var cmdListMember = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		membersOpts := &github.ListMembersOptions{}
 
-		var members []*github.User
+		members := make([]*github.User, 0)
 		for {
 			users, resp, err := GitHubClient.Organizations.ListMembers(ctx, GitHubOrg, membersOpts)
 			if err != nil {
@@ -193,7 +193,7 @@ func init() {
 	cmdAddMember.Flags().StringP("name", "n", "", "Required unless you provide email. GitHub user name for the person you are inviting.")
 	cmdAddMember.Flags().String("email", "", "Required unless you provide name. Email address of the person you are inviting, which can be an existing GitHub user.")
 	cmdAddMember.Flags().StringP("role", "r", "direct_member", "Specify role for new member ['admin', 'direct_member', 'billing_manager']")
-	cmdAddMember.Flags().StringArrayP("team", "t", []string{}, "Specify names for the teams you want to invite new members to.")
+	cmdAddMember.Flags().StringSliceP("team", "t", []string{}, "Specify names for the teams you want to invite new members to.")
 
 	cmdMember.AddCommand(cmdDeleteMember)
 	cmdDeleteMember.Flags().StringP("mode", "m", "name", "delete by ['name' , 'id']")
