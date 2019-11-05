@@ -36,7 +36,7 @@ var cmdListTeam = &cobra.Command{
 		}
 
 		for _, t := range teams {
-			fmt.Printf("Name: %s, ID: %d, Description: %s\n", *t.Name, *t.ID, *t.Description)
+			fmt.Printf("Name: %#v, ID: %#v, Description: %#v\n", *t.Name, *t.ID, *t.Description)
 		}
 
 		return nil
