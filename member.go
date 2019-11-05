@@ -127,7 +127,7 @@ var cmdDeleteMember = &cobra.Command{
 		switch mode {
 		case "name":
 			for _, user := range args {
-				if _, err := GitHubClient.Organizations.RemoveMember(ctx, user, GitHubOrg); err != nil {
+				if _, err := GitHubClient.Organizations.RemoveMember(ctx, GitHubOrg, user); err != nil {
 					return err
 				}
 			}
@@ -143,7 +143,7 @@ var cmdDeleteMember = &cobra.Command{
 					return err
 				}
 
-				if _, err = GitHubClient.Organizations.RemoveMember(ctx, *user.Login, GitHubOrg); err != nil {
+				if _, err = GitHubClient.Organizations.RemoveMember(ctx, GitHubOrg, *user.Login); err != nil {
 					return err
 				}
 			}
