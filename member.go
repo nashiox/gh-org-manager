@@ -108,7 +108,23 @@ var cmdAddMember = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Login: %#v, ID: %#v, Email: %#v, Role: %#v\n", *invitation.Login, *invitation.ID, *invitation.Email, *invitation.Role)
+		if invitation.Login == nil {
+			*invitation.Login = ""
+		}
+
+		if invitation.ID == nil {
+			*invitation.ID = 0
+		}
+
+		if invitation.Email == nil {
+			*invitation.Email = ""
+		}
+
+		if invitation.Role == nil {
+			*invitation.Role = ""
+		}
+
+		fmt.Printf("Login: %s, ID: %d, Email: %s, Role: %s\n", *invitation.Login, *invitation.ID, *invitation.Email, *invitation.Role)
 
 		return nil
 	},
@@ -179,7 +195,15 @@ var cmdListMember = &cobra.Command{
 		}
 
 		for _, m := range members {
-			fmt.Printf("Login: %#v, ID: %#v\n", *m.Login, *m.ID)
+			if m.Login == nil {
+				*m.Login = ""
+			}
+
+			if m.ID == nil {
+				*m.ID = 0
+			}
+
+			fmt.Printf("Login: %s, ID: %d\n", *m.Login, *m.ID)
 		}
 
 		return nil
