@@ -108,20 +108,22 @@ var cmdAddMember = &cobra.Command{
 			return err
 		}
 
+		nullString := ""
+		nullInteger := int64(0)
 		if invitation.Login == nil {
-			*invitation.Login = ""
+			invitation.Login = &nullString
 		}
 
 		if invitation.ID == nil {
-			*invitation.ID = 0
+			invitation.ID = &nullInteger
 		}
 
 		if invitation.Email == nil {
-			*invitation.Email = ""
+			invitation.Email = &nullString
 		}
 
 		if invitation.Role == nil {
-			*invitation.Role = ""
+			invitation.Role = &nullString
 		}
 
 		fmt.Printf("Login: %s, ID: %d, Email: %s, Role: %s\n", *invitation.Login, *invitation.ID, *invitation.Email, *invitation.Role)
