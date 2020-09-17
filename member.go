@@ -108,25 +108,12 @@ var cmdAddMember = &cobra.Command{
 			return err
 		}
 
-		nullString := ""
-		nullInteger := int64(0)
-		if invitation.Login == nil {
-			invitation.Login = &nullString
+		u, _, err := GitHubClient.Users.Get(ctx, invitation.GetLogin())
+		if err != nil {
+			return err
 		}
 
-		if invitation.ID == nil {
-			invitation.ID = &nullInteger
-		}
-
-		if invitation.Email == nil {
-			invitation.Email = &nullString
-		}
-
-		if invitation.Role == nil {
-			invitation.Role = &nullString
-		}
-
-		fmt.Printf("Login: %s, ID: %d, Email: %s, Role: %s\n", *invitation.Login, *invitation.ID, *invitation.Email, *invitation.Role)
+		fmt.Printf("Login: %s, ID: %d, Email: %s, Role: %s\n", invitation.GetLogin(), u.ID, invitation.GetEmail(), invitation.GetRole())
 
 		return nil
 	},
@@ -178,7 +165,17 @@ var cmdListMember = &cobra.Command{
 	Short: "get member list",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		membersOpts := &github.ListMembersOptions{}
+		role, err := cmd.Flags().GetString("role")
+		if err != nil {
+			return err
+		}
+
+		if role != "all" && role != "admin" && role != "member" {
+			return errors.New("expect role 'all', 'admin' or 'member'")
+		}
+		membersOpts := &github.ListMembersOptions{
+			Role: role,
+		}
 
 		members := make([]*github.User, 0)
 		for {
@@ -197,15 +194,7 @@ var cmdListMember = &cobra.Command{
 		}
 
 		for _, m := range members {
-			if m.Login == nil {
-				*m.Login = ""
-			}
-
-			if m.ID == nil {
-				*m.ID = 0
-			}
-
-			fmt.Printf("Login: %s, ID: %d\n", *m.Login, *m.ID)
+			fmt.Printf("Login: %s, ID: %d\n", m.GetLogin(), m.GetID())
 		}
 
 		return nil
@@ -225,4 +214,5 @@ func init() {
 	cmdDeleteMember.Flags().StringP("mode", "m", "name", "delete by ['name' , 'id']")
 
 	cmdMember.AddCommand(cmdListMember)
+	cmdListMember.Flags().StringP("role", "r", "all", "Filter members returned by their role ['all' , 'admin', 'member']")
 }

@@ -36,19 +36,7 @@ var cmdListTeam = &cobra.Command{
 		}
 
 		for _, t := range teams {
-			if t.Name == nil {
-				*t.Name = ""
-			}
-
-			if t.ID == nil {
-				*t.ID = 0
-			}
-
-			if t.Description == nil {
-				*t.Description = ""
-			}
-
-			fmt.Printf("Name: %s, ID: %d, Description: %s\n", *t.Name, *t.ID, *t.Description)
+			fmt.Printf("Name: %s, ID: %d, Description: %s\n", t.GetName(), t.GetID(), t.GetDescription())
 		}
 
 		return nil
